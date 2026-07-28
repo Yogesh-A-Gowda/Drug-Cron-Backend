@@ -20,12 +20,13 @@ from sklearn.utils.class_weight import compute_class_weight
 from torch.utils.data import Dataset
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
+
 INPUT_CSV = "/kaggle/input/datasets/yogeshagowdaiiitdwd/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"
 MIN_ACCURACY = 0.55
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
 
 class ReviewDataset(Dataset):
     def __init__(self, texts, labels, tokenizer):

@@ -17,6 +17,7 @@ jobs:
       KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+      MIN_ACCURACY: ${{ secrets.MIN_ACCURACY }}
     steps:
       - uses: actions/checkout@v4
       

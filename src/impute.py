@@ -22,9 +22,21 @@ def run(input_csv, output_csv):
     df_out['age'] = numeric_imputed_df['age'].round().astype(int).clip(lower=10, upper=100)
     df_out['weight'] = numeric_imputed_df['weight'].round(1).clip(lower=30, upper=200)
 
-    df_out['gender'] = df_out['gender'].replace({'M': 'Male', 'F': 'Female', 'm': 'Male', 'f': 'Female'})
+# Normalize ALL casing variants to a consistent Male/Female before counting
+    df_out['gender'] = df_out['gender'].astype(str).str.strip().str.lower().replace({'m': 'male', 'f': 'female', 'nan': None, 'none': None })
+    df_out['gender'] = df_out['gender'].map({'male': 'Male', 'female': 'Female'})
+
     dist = df_out['gender'].value_counts(normalize=True)
-    p_male, p_female = dist.get("Male", 0.5), dist.get("Female", 0.5)
+    p_male = dist.get("Male", 0.5)
+    p_female = dist.get("Female", 0.5)
+
+    # Defensive: guarantee these sum to exactly 1 regardless of stray categories
+    total = p_male + p_female
+    if total == 0:
+        p_male, p_female = 0.5, 0.5
+    else:
+        p_male, p_female = p_male / total, p_female / total
+
     mask = df_out['gender'].isna()
     if mask.sum() > 0:
         df_out.loc[mask, 'gender'] = np.random.choice(["Male", "Female"], size=mask.sum(), p=[p_male, p_female])

@@ -33,8 +33,44 @@ jobs:
       - name: Classify
         run: python src/classify.py --input drug_reviews_imputed.csv --output drug_reviews_labeled.csv
 
-      - name: Fine-tune
-        run: python src/fine_tune.py --input drug_reviews_labeled.csv --output_dir ./models/latest
+      - name: Install Kaggle CLI
+        run: pip install kaggle
+
+      - name: Push labeled dataset to Kaggle
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          mkdir -p kaggle_dataset
+          cp drug_reviews_labeled.csv kaggle_dataset/
+          cat > kaggle_dataset/dataset-metadata.json << 'EOF'
+          {"title": "drug-reviews-labeled", "id": "yogeshagowda/drug-reviews-labeled", "licenses": [{"name": "CC0-1.0"}]}
+          EOF
+          kaggle datasets version -p kaggle_dataset -m "update $(date +%Y%m%d_%H%M)" --dir-mode zip || \
+          kaggle datasets create -p kaggle_dataset --dir-mode zip
+
+      - name: Trigger Kaggle GPU fine-tune
+        env:
+          KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
+          KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+        run: |
+          kaggle kernels push -p kaggle_kernel/
+          echo "Waiting for Kaggle kernel to finish..."
+          for i in $(seq 1 60); do
+            STATUS=$(kaggle kernels status yogeshagowda/drug-distilbert-finetune)
+            echo "$STATUS"
+            if echo "$STATUS" | grep -q "complete"; then
+              echo "Kernel finished successfully"
+              exit 0
+            fi
+            if echo "$STATUS" | grep -qi "error"; then
+              echo "Kernel failed"
+              exit 1
+            fi
+            sleep 30
+          done
+          echo "Timed out waiting for Kaggle kernel"
+          exit 1
 
       - name: Push model to HF Hub
         env:

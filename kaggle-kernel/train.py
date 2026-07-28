@@ -1,7 +1,7 @@
 """
 Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset from
-the attached Kaggle input path, trains, and pushes the result
-straight to HF Hub itself — gated on eval accuracy.
+the attached Kaggle input path, trains, and saves the model locally 
+so GitHub Actions can handle the final artifact deployment.
 """
 
 import subprocess
@@ -20,15 +20,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.utils.class_weight import compute_class_weight
 from torch.utils.data import Dataset
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
-from huggingface_hub import HfApi
-from kaggle_secrets import UserSecretsClient
 
 INPUT_CSV = "/kaggle/input/datasets/yogeshagowdaiiitdwd/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"
-HF_MODEL_REPO = "yogeshagowda/mtech-model"
 MIN_ACCURACY = 0.55
-
-hf_token = UserSecretsClient().get_secret("HF_TOKEN")
 
 class ReviewDataset(Dataset):
     def __init__(self, texts, labels, tokenizer):
@@ -108,13 +103,9 @@ def main():
     joblib.dump(label_encoder, f"{MODEL_OUTPUT_DIR}/label_encoder.pkl")
 
     if acc < MIN_ACCURACY:
-        print(f"Accuracy {acc:.4f} below floor {MIN_ACCURACY} — NOT pushing to HF Hub")
-        return
-
-    api = HfApi(token=hf_token)
-    api.create_repo(repo_id=HF_MODEL_REPO, repo_type="model", exist_ok=True, private=True)
-    api.upload_folder(folder_path=MODEL_OUTPUT_DIR, repo_id=HF_MODEL_REPO, repo_type="model")
-    print(f"Pushed model to https://huggingface.co/{HF_MODEL_REPO}")
+        print(f"Accuracy {acc:.4f} below floor {MIN_ACCURACY} — training complete, but accuracy gate failed.")
+    else:
+        print(f"Accuracy {acc:.4f} met threshold. Model successfully saved locally at {MODEL_OUTPUT_DIR}")
 
 if __name__ == "__main__":
     try:

@@ -17,6 +17,9 @@ jobs:
 
       - run: pip install -r requirements.txt
 
+      - name: Download NLTK data for nlpaug
+        run: python -c "import nltk; nltk.download('wordnet'); nltk.download('averaged_perceptron_tagger')"
+
       - name: Scrape
         env:
           SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}

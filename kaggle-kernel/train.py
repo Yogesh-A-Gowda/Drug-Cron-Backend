@@ -3,6 +3,12 @@ Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset from
 a Kaggle dataset (pushed by GitHub Actions), trains, and pushes the result
 straight to HF Hub itself — gated on eval accuracy, same as push_artifacts.py.
 """
+import os
+
+hf_token = os.environ.get("HF_TOKEN")
+
+if not hf_token:
+    raise ValueError("HF_TOKEN environment variable not found!")
 
 import subprocess
 import sys
@@ -13,7 +19,7 @@ subprocess.check_call([sys.executable, "-m", "pip", "install", "nlpaug", "transf
 # Now your standard imports will run smoothly
 import nlpaug.augmenter.word as naw
 
-import os, numpy as np, pandas as pd, torch, joblib
+import numpy as np, pandas as pd, torch, joblib
 import nlpaug.augmenter.word as naw
 from torch import nn
 from sklearn.preprocessing import LabelEncoder

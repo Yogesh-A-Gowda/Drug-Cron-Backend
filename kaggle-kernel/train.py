@@ -16,7 +16,7 @@ from kaggle_secrets import UserSecretsClient
 
 INPUT_CSV = "/kaggle/input/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"
-HF_MODEL_REPO = "yogeshagowda/drug-distilbert"
+HF_MODEL_REPO = "yogeshagowda/mtech-model"
 MIN_ACCURACY = 0.55
 
 hf_token = UserSecretsClient().get_secret("HF_TOKEN")

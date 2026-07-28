@@ -1,0 +1,12 @@
+pandas
+numpy
+requests
+scikit-learn
+torch
+transformers
+joblib
+nlpaug
+nltk
+huggingface_hub
+sentence-transformers
+psycopg2-binary

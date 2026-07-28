@@ -1,5 +1,7 @@
-"""New — pushes the fine-tuned model to HF Hub, gated on an eval accuracy floor
-so a bad scrape/run can't silently degrade the live serving model."""
+"""
+Pushes the fine-tuned model to HF Hub, gated on an eval accuracy floor
+so a bad scrape/run can't silently degrade the live serving model.
+"""
 import argparse, ast, os
 from huggingface_hub import HfApi
 

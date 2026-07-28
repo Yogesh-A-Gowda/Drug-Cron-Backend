@@ -3,7 +3,6 @@ Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset from
 the attached Kaggle input path, trains, and saves the model locally 
 so GitHub Actions can handle the final artifact deployment.
 """
-
 import subprocess
 import sys
 
@@ -24,6 +23,9 @@ from transformers import DistilBertTokenizer, DistilBertForSequenceClassificatio
 INPUT_CSV = "/kaggle/input/datasets/yogeshagowdaiiitdwd/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"
 MIN_ACCURACY = 0.55
+
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print(f"Using device: {device}")
 
 class ReviewDataset(Dataset):
     def __init__(self, texts, labels, tokenizer):

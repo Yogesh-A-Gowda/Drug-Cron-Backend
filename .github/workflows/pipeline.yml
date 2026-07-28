@@ -61,7 +61,11 @@ jobs:
       - name: Trigger Kaggle GPU fine-tune
         run: |
           export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_API_TOKEN }}"
+          # Use pull/push or ensure metadata matches. If pushing code as a script, 
+          # ensure kernel-metadata.json specifies kernel_type: "script"
+          kaggle kernels pull yogeshagowdaiiitdwd/drug-distilbert-finetune -p kaggle-kernel/ --metadata || true
           kaggle kernels push -p kaggle-kernel/
+          
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do
             STATUS=$(kaggle kernels status yogeshagowdaiiitdwd/drug-distilbert-finetune)
@@ -79,11 +83,11 @@ jobs:
           echo "Timed out waiting for Kaggle kernel"
           exit 1
 
-      - name: Push model to HF Hub
-        run: |
-          export HF_TOKEN="${{ secrets.HF_TOKEN }}"
-          export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
-          python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech-model
+      # - name: Push model to HF Hub
+      #   run: |
+      #     export HF_TOKEN="${{ secrets.HF_TOKEN }}"
+      #     export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
+      #     python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech-model
 
       - name: Update Neon embeddings
         run: |

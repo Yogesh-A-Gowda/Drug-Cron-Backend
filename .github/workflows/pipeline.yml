@@ -1,0 +1,44 @@
+name: Drug Review Pipeline
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'   # weekly; adjust or remove once you're ready
+  workflow_dispatch: {}
+
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - run: pip install -r requirements.txt
+
+      - name: Scrape
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        run: python src/scrape.py
+
+      - name: Impute
+        run: python src/impute.py --input drug_reviews_clean.csv --output drug_reviews_imputed.csv
+
+      - name: Classify
+        run: python src/classify.py --input drug_reviews_imputed.csv --output drug_reviews_labeled.csv
+
+      - name: Fine-tune
+        run: python src/fine_tune.py --input drug_reviews_labeled.csv --output_dir ./models/latest
+
+      - name: Push model to HF Hub
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/drug-distilbert
+
+      - name: Update Neon embeddings
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: python src/update_embeddings.py --input drug_reviews_labeled.csv

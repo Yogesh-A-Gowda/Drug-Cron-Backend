@@ -1,0 +1,13 @@
+{
+  "id": "yogeshagowda/drug-distilbert-finetune",
+  "title": "drug-distilbert-finetune",
+  "code_file": "train.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["yogeshagowda/drug-reviews-labeled"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

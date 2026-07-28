@@ -9,16 +9,6 @@ jobs:
   run-pipeline:
     runs-on: ubuntu-latest
     timeout-minutes: 180
-    env:
-      SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
-      REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
-      REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
-      KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
-      KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
-      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
-      HF_TOKEN: ${{ secrets.HF_TOKEN }}
-      NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
-      MIN_ACCURACY: ${{ secrets.MIN_ACCURACY }}
     steps:
       - uses: actions/checkout@v4
       
@@ -32,7 +22,15 @@ jobs:
         run: python -c "import nltk; nltk.download('wordnet'); nltk.download('averaged_perceptron_tagger')"
 
       - name: Scrape
-        run: python src/scrape.py
+        env:
+          SERPAPI_KEY: ${{ secrets.SERPAPI_KEY }}
+          REDDIT_CLIENT_ID: ${{ secrets.REDDIT_CLIENT_ID }}
+          REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
+        run: |
+          export SERPAPI_KEY="${{ secrets.SERPAPI_KEY }}"
+          export REDDIT_CLIENT_ID="${{ secrets.REDDIT_CLIENT_ID }}"
+          export REDDIT_CLIENT_SECRET="${{ secrets.REDDIT_CLIENT_SECRET }}"
+          python src/scrape.py
 
       - name: Impute
         run: python src/impute.py --input drug_reviews_clean.csv --output drug_reviews_imputed.csv
@@ -46,11 +44,13 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
-          echo "${{ secrets.KAGGLE_API_TOKEN }}" > ~/.kaggle/access_token
-          chmod 600 ~/.kaggle/access_token
+          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
+          chmod 600 ~/.kaggle/kaggle.json
 
       - name: Push labeled dataset to Kaggle
         run: |
+          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
+          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
           mkdir -p kaggle_dataset
           cp drug_reviews_labeled.csv kaggle_dataset/
           cat > kaggle_dataset/dataset-metadata.json << 'EOF'
@@ -61,6 +61,8 @@ jobs:
 
       - name: Trigger Kaggle GPU fine-tune
         run: |
+          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
+          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
           kaggle kernels push -p kaggle_kernel/
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do
@@ -80,7 +82,12 @@ jobs:
           exit 1
 
       - name: Push model to HF Hub
-        run: python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech
+        run: |
+          export HF_TOKEN="${{ secrets.HF_TOKEN }}"
+          export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
+          python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech
 
       - name: Update Neon embeddings
-        run: python src/update_embeddings.py --input drug_reviews_labeled.csv
+        run: |
+          export NEON_DATABASE_URL="${{ secrets.NEON_DATABASE_URL }}"
+          python src/update_embeddings.py --input drug_reviews_labeled.csv

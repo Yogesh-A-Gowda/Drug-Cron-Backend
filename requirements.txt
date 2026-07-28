@@ -10,3 +10,4 @@ nltk
 huggingface_hub
 sentence-transformers
 psycopg2-binary
+accelerate>=1.1.0

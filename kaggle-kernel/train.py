@@ -20,8 +20,18 @@ from sklearn.utils.class_weight import compute_class_weight
 from torch.utils.data import Dataset
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification, Trainer, TrainingArguments
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-print(f"Using device: {device}")
+if not torch.cuda.is_available():
+  print(
+      "ERROR: GPU T4 x2 accelerator is not detected or PyTorch is missing CUDA"
+      " support. Exiting."
+  )
+  sys.exit(1)
+
+device = torch.device("cuda")
+print(
+    f"Success: GPU detected -> {torch.cuda.get_device_name(0)}. Running on"
+    " CUDA."
+)
 
 INPUT_CSV = "/kaggle/input/datasets/yogeshagowdaiiitdwd/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"

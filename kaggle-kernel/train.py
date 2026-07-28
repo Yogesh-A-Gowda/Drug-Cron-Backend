@@ -97,15 +97,20 @@ def main():
     acc = eval_result.get('eval_accuracy', 0)
     print(f"Eval accuracy: {acc:.4f}")
 
+    # Save outputs and evaluation metrics locally for GitHub Actions
     os.makedirs(MODEL_OUTPUT_DIR, exist_ok=True)
     trainer.save_model(MODEL_OUTPUT_DIR)
     tokenizer.save_pretrained(MODEL_OUTPUT_DIR)
     joblib.dump(label_encoder, f"{MODEL_OUTPUT_DIR}/label_encoder.pkl")
 
+    metrics_path = f"{MODEL_OUTPUT_DIR}/eval_metrics.txt"
+    with open(metrics_path, "w") as f:
+        f.write(str({"eval_accuracy": acc}))
+
     if acc < MIN_ACCURACY:
-        print(f"Accuracy {acc:.4f} below floor {MIN_ACCURACY} — training complete, but accuracy gate failed.")
+        print(f"Accuracy {acc:.4f} below floor {MIN_ACCURACY} — artifacts saved, but performance gate failed.")
     else:
-        print(f"Accuracy {acc:.4f} met threshold. Model successfully saved locally at {MODEL_OUTPUT_DIR}")
+        print(f"Accuracy {acc:.4f} met threshold. Model ready for deployment.")
 
 if __name__ == "__main__":
     try:

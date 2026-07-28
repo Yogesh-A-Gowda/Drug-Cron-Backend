@@ -83,11 +83,11 @@ jobs:
           echo "Timed out waiting for Kaggle kernel"
           exit 1
 
-      # - name: Push model to HF Hub
-      #   run: |
-      #     export HF_TOKEN="${{ secrets.HF_TOKEN }}"
-      #     export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
-      #     python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech-model
+      - name: Push model to HF Hub
+        run: |
+          export HF_TOKEN="${{ secrets.HF_TOKEN }}"
+          export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
+          python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech-model
 
       - name: Update Neon embeddings
         run: |

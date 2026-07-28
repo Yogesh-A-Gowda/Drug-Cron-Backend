@@ -59,28 +59,58 @@ jobs:
           kaggle datasets create -p kaggle_dataset --dir-mode zip
 
       - name: Trigger Kaggle GPU fine-tune
+        env:
+          KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
         run: |
-          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_API_TOKEN }}"
-          # Use pull/push or ensure metadata matches. If pushing code as a script, 
-          # ensure kernel-metadata.json specifies kernel_type: "script"
-          kaggle kernels pull yogeshagowdaiiitdwd/drug-distilbert-finetune -p kaggle-kernel/ --metadata || true
-          kaggle kernels push -p kaggle-kernel/
+          # ─── THE CORRECT ROOT TARGET FIX ───────────────────────────────────────
+          # Create your metadata file directly in your main root project directory
+          cat > kernel-metadata.json << 'EOF'
+          {
+            "id": "yogeshagowdaiiitdwd/drug-distilbert-finetune",
+            "title": "drug-distilbert-finetune",
+            "code_file": "train.py",
+            "language": "python",
+            "kernel_type": "script",
+            "is_private": true,
+            "enable_gpu": true,
+            "enable_internet": true,
+            "dataset_sources": ["yogeshagowdaiiitdwd/drug-reviews-labeled"],
+            "competition_sources": [],
+            "kernel_sources": []
+          }
+          EOF
+
+          # Push from your root directory (.) instead of the kaggle-kernel/ folder
+          kaggle kernels push -p .
+          # ───────────────────────────────────────────────────────────────────────
           
-          echo "Waiting for Kaggle kernel to finish..."
-          for i in $(seq 1 60); do
-            STATUS=$(kaggle kernels status yogeshagowdaiiitdwd/drug-distilbert-finetune)
+          echo "Waiting for Kaggle GPU kernel to finish..."
+          SLUG="yogeshagowdaiiitdwd/drug-distilbert-finetune"
+          
+          # Status tracking loop
+          for i in {1..60}; do
+            STATUS=$(kaggle kernels status "$SLUG")
             echo "$STATUS"
-            if echo "$STATUS" | grep -q "complete"; then
-              echo "Kernel finished successfully"
+            
+            if echo "$STATUS" | grep -q 'has status "complete"'; then
+              echo "✅ Kernel finished successfully"
+              
+              # Download output artifacts into your workspace
+              mkdir -p ./models/latest
+              kaggle kernels output "$SLUG" -p ./models/latest
               exit 0
             fi
+            
             if echo "$STATUS" | grep -qi "error"; then
-              echo "Kernel failed"
+              echo "❌ Kernel failed. Fetching execution logs..."
+              kaggle kernels output "$SLUG" -p ./kernel-logs/
+              cat ./kernel-logs/*.log 2>/dev/null || echo "No explicit log files found."
               exit 1
             fi
-            sleep 30
+            sleep 40
           done
-          echo "Timed out waiting for Kaggle kernel"
+          
+          echo "⏰ Timed out waiting for Kaggle kernel"
           exit 1
 
       - name: Push model to HF Hub

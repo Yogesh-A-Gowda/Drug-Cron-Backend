@@ -46,6 +46,9 @@ jobs:
           mkdir -p ~/.kaggle
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
+          # Explicitly export the environment variables as fallback for newer Kaggle CLI versions
+          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
+          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
 
       - name: Push labeled dataset to Kaggle
         run: |
@@ -62,7 +65,7 @@ jobs:
           kaggle kernels push -p kaggle_kernel/
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do
-            STATUS=$(kaggle kernels status yogeshagowda/drug-distilbert-finetune)
+            STATUS=$(kaggle kernels status yogeshagowdaiiitdwd/drug-distilbert-finetune)
             echo "$STATUS"
             if echo "$STATUS" | grep -q "complete"; then
               echo "Kernel finished successfully"

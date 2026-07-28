@@ -107,4 +107,9 @@ def main():
     print(f"Pushed model to https://huggingface.co/{HF_MODEL_REPO}")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise e

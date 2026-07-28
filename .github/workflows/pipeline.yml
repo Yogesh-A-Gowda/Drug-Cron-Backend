@@ -15,6 +15,7 @@ jobs:
       REDDIT_CLIENT_SECRET: ${{ secrets.REDDIT_CLIENT_SECRET }}
       KAGGLE_USERNAME: ${{ secrets.KAGGLE_USERNAME }}
       KAGGLE_KEY: ${{ secrets.KAGGLE_KEY }}
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
       MIN_ACCURACY: ${{ secrets.MIN_ACCURACY }}
@@ -45,11 +46,8 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
-          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
-          chmod 600 ~/.kaggle/kaggle.json
-          # Explicitly export the environment variables as fallback for newer Kaggle CLI versions
-          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
-          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
+          echo "${{ secrets.KAGGLE_API_TOKEN }}" > ~/.kaggle/access_token
+          chmod 600 ~/.kaggle/access_token
 
       - name: Push labeled dataset to Kaggle
         run: |
@@ -82,7 +80,7 @@ jobs:
           exit 1
 
       - name: Push model to HF Hub
-        run: python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/drug-distilbert
+        run: python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech
 
       - name: Update Neon embeddings
         run: python src/update_embeddings.py --input drug_reviews_labeled.csv

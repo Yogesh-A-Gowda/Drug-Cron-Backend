@@ -2,7 +2,7 @@ name: Drug Review Pipeline
 
 on:
   schedule:
-    - cron: '0 3 * * 0'   # weekly; adjust or remove once you're ready
+    - cron: '0 3 * * 0'    # weekly; adjust or remove once you're ready
   workflow_dispatch: {}
 
 jobs:
@@ -44,29 +44,23 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
-          
-          # 1. Provide the legacy JSON structure (Fixes older/mixed CLI package behaviors)
-          echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
-          chmod 600 ~/.kaggle/kaggle.json
-          
-          # 2. Provide the modern single access token file (Fixes modern CLI package behaviors)
           echo "${{ secrets.KAGGLE_API_TOKEN }}" > ~/.kaggle/access_token
           chmod 600 ~/.kaggle/access_token
 
       - name: Push labeled dataset to Kaggle
         run: |
-          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}"
+          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_API_TOKEN }}"
           mkdir -p kaggle_dataset
           cp drug_reviews_labeled.csv kaggle_dataset/
           cat > kaggle_dataset/dataset-metadata.json << 'EOF'
-          {"title": "drug-reviews-labeled", "id": "yogeshagowda/drug-reviews-labeled", "licenses": [{"name": "CC0-1.0"}]}
+          {"title": "drug-reviews-labeled", "id": "yogeshagowdaiiitdwd/drug-reviews-labeled", "licenses": [{"name": "CC0-1.0"}]}
           EOF
           kaggle datasets version -p kaggle_dataset -m "update $(date +%Y%m%d_%H%M)" --dir-mode zip || \
           kaggle datasets create -p kaggle_dataset --dir-mode zip
 
       - name: Trigger Kaggle GPU fine-tune
         run: |
-          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}"
+          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_API_TOKEN }}"
           kaggle kernels push -p kaggle_kernel/
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do

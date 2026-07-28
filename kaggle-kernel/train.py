@@ -3,6 +3,16 @@ Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset from
 a Kaggle dataset (pushed by GitHub Actions), trains, and pushes the result
 straight to HF Hub itself — gated on eval accuracy, same as push_artifacts.py.
 """
+
+import subprocess
+import sys
+
+# Install required packages dynamically in the Kaggle environment
+subprocess.check_call([sys.executable, "-m", "pip", "install", "nlpaug", "transformers", "torch", "scikit-learn"])
+
+# Now your standard imports will run smoothly
+import nlpaug.augmenter.word as naw
+
 import os, numpy as np, pandas as pd, torch, joblib
 import nlpaug.augmenter.word as naw
 from torch import nn

@@ -44,13 +44,17 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
+          # Write out the legacy json file
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
+          
+          # Combine username and key into the modern single token format the CLI checks for
+          echo "${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}" > ~/.kaggle/access_token
+          chmod 600 ~/.kaggle/access_token
 
       - name: Push labeled dataset to Kaggle
         run: |
-          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
-          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
+          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}"
           mkdir -p kaggle_dataset
           cp drug_reviews_labeled.csv kaggle_dataset/
           cat > kaggle_dataset/dataset-metadata.json << 'EOF'
@@ -61,8 +65,7 @@ jobs:
 
       - name: Trigger Kaggle GPU fine-tune
         run: |
-          export KAGGLE_USERNAME="${{ secrets.KAGGLE_USERNAME }}"
-          export KAGGLE_KEY="${{ secrets.KAGGLE_KEY }}"
+          export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}"
           kaggle kernels push -p kaggle_kernel/
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do

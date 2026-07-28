@@ -2,18 +2,20 @@
 Scraping sources:
   - OpenFDA (official, free, no key)
   - Site-restricted Google search snippets via SerpAPI (drugs.com, askapatient.com, webmd.com)
-  - Cached one-time base datasets (Kaggle UCI + WebMD, pulled via Kaggle API separately, see README)
+  - Cached one-time base datasets (Kaggle UCI + WebMD), pulled from your HF dataset
+    repo — populated once via scripts/fetch_kaggle_base.py, not re-downloaded here.
 
 Reddit removed: Reddit closed unauthenticated .json access in May 2026, and
 its official API requires OAuth credentials — not worth the added integration
 for the marginal data it contributed here.
 """
 import os, re, time, requests, pandas as pd
+from huggingface_hub import snapshot_download
 
 DRUGS = ["metformin", "sertraline", "gabapentin", "amitriptyline", "lithium", "adderall", "oxycodone"]
 SERPAPI_KEY = os.environ.get("SERPAPI_KEY")
+HF_DATASET_REPO = os.environ.get("HF_DATASET_REPO", "yogeshagowda/mtech")
 
-# Each entry: (source label, site filter, extra query terms that tend to surface demographic info)
 SERPAPI_SITES = [
     ("drugs_com", "drugs.com/comments/", "(year-old OR I am OR weight OR lbs OR kg)"),
     ("askapatient", "askapatient.com/viewrating.asp", "(year-old OR I am OR weight OR lbs OR kg)"),
@@ -72,7 +74,7 @@ def scrape_via_serpapi():
                 elif r.status_code == 429:
                     print(f"SerpAPI rate/quota limit hit on {source_label}/{drug} — stopping this source early")
                     break
-                time.sleep(1)  # be respectful, and stay under SerpAPI rate limits
+                time.sleep(1)
             except Exception as e:
                 print(f"SerpAPI error on {source_label}/{drug}: {e}")
         print(f"Completed sweep for {source_label}")
@@ -108,13 +110,38 @@ def scrape_openfda():
             print(f"OpenFDA error: {e}")
     return pd.DataFrame(records)
 
-def load_cached_base_datasets(cache_dir="./data/base"):
+
+def parse_age_bucket(age_str):
+    """WebMD gives ages as ranges ('25-34') or open-ended buckets ('75 or over'),
+    not exact values. This approximates a numeric age via midpoint (or the lower
+    bound for open-ended buckets) — good enough for imputation math downstream,
+    but it's worth knowing this source's ages are approximate, not exact."""
+    if pd.isna(age_str):
+        return None
+    s = str(age_str).strip().lower()
+    nums = [float(n) for n in re.findall(r'\d+', s)]
+    if not nums:
+        return None
+    if 'or over' in s or 'or older' in s or '+' in s:
+        return nums[0]
+    if len(nums) == 2:
+        return (nums[0] + nums[1]) / 2
+    return nums[0]
+
+def load_cached_base_datasets():
     """
-    One-time, non-interactive replacement for files.upload(). Populate this
-    folder once via the Kaggle API (UCI drugs.com dataset + WebMD dataset),
-    then cache the results in your HF dataset repo — this function does not
-    re-download anything on every pipeline run.
+    Pulls the one-time-cached Kaggle base data from your HF dataset repo.
+    Populated once via scripts/fetch_kaggle_base.py — this function never
+    talks to Kaggle directly, so no Kaggle credentials are needed in the
+    recurring pipeline.
     """
+    try:
+        cache_dir = snapshot_download(repo_id=HF_DATASET_REPO, repo_type="dataset",
+                                       token=os.environ.get("HF_TOKEN"))
+    except Exception as e:
+        print(f"Could not pull base datasets from {HF_DATASET_REPO}: {e}")
+        return pd.DataFrame()
+
     frames = []
     uci_path = os.path.join(cache_dir, "drugsComTrain_raw.csv")
     if os.path.exists(uci_path):
@@ -125,18 +152,22 @@ def load_cached_base_datasets(cache_dir="./data/base"):
         df[["age", "gender", "weight"]] = df["review_text"].apply(lambda x: pd.Series(extract_demographics(x)))
         df["source"] = "kaggle_uci"
         frames.append(df)
+    else:
+        print(f"No drugsComTrain_raw.csv found in {HF_DATASET_REPO} — skipping UCI source")
 
     webmd_path = os.path.join(cache_dir, "webmd.csv")
     if os.path.exists(webmd_path):
         df = pd.read_csv(webmd_path)
-        # Confirm actual WebMD column names once downloaded and adjust this rename map.
-        df = df.rename(columns={"Drug": "drug_name", "Reviews": "review_text", "Age": "age", "Sex": "gender"})
-        keep = [c for c in ["drug_name", "review_text", "age", "gender"] if c in df.columns]
-        df = df[keep].dropna(subset=["review_text"])
+        df = df.rename(columns={"Drug": "drug_name", "Reviews": "review_text",
+                                 "Age": "age", "Sex": "gender"})
+        df = df[["drug_name", "review_text", "age", "gender"]].dropna(subset=["review_text"])
         df["drug_name"] = df["drug_name"].str.lower()
-        df["weight"] = None
+        df["age"] = df["age"].apply(parse_age_bucket)
+        df["weight"] = None  # WebMD has no weight column
         df["source"] = "webmd_kaggle"
         frames.append(df)
+    else:
+        print(f"No webmd.csv found in {HF_DATASET_REPO} — skipping WebMD source")
 
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 

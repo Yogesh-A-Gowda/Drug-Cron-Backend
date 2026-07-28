@@ -44,13 +44,8 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
-          # Write out the legacy json file
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
-          
-          # Combine username and key into the modern single token format the CLI checks for
-          echo "${{ secrets.KAGGLE_USERNAME }}:${{ secrets.KAGGLE_KEY }}" > ~/.kaggle/access_token
-          chmod 600 ~/.kaggle/access_token
 
       - name: Push labeled dataset to Kaggle
         run: |

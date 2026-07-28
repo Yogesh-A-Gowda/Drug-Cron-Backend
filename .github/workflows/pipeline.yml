@@ -44,8 +44,14 @@ jobs:
       - name: Setup Kaggle Credentials
         run: |
           mkdir -p ~/.kaggle
+          
+          # 1. Provide the legacy JSON structure (Fixes older/mixed CLI package behaviors)
           echo '{"username":"${{ secrets.KAGGLE_USERNAME }}","key":"${{ secrets.KAGGLE_KEY }}"}' > ~/.kaggle/kaggle.json
           chmod 600 ~/.kaggle/kaggle.json
+          
+          # 2. Provide the modern single access token file (Fixes modern CLI package behaviors)
+          echo "${{ secrets.KAGGLE_API_TOKEN }}" > ~/.kaggle/access_token
+          chmod 600 ~/.kaggle/access_token
 
       - name: Push labeled dataset to Kaggle
         run: |

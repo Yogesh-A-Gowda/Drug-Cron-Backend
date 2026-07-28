@@ -61,7 +61,7 @@ jobs:
       - name: Trigger Kaggle GPU fine-tune
         run: |
           export KAGGLE_API_TOKEN="${{ secrets.KAGGLE_API_TOKEN }}"
-          kaggle kernels push -p kaggle_kernel/
+          kaggle kernels push -p kaggle-kernel/
           echo "Waiting for Kaggle kernel to finish..."
           for i in $(seq 1 60); do
             STATUS=$(kaggle kernels status yogeshagowdaiiitdwd/drug-distilbert-finetune)
@@ -83,7 +83,7 @@ jobs:
         run: |
           export HF_TOKEN="${{ secrets.HF_TOKEN }}"
           export MIN_ACCURACY="${{ secrets.MIN_ACCURACY }}"
-          python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech
+          python src/push_artifacts.py --model_dir ./models/latest --repo_id yogeshagowda/mtech-model
 
       - name: Update Neon embeddings
         run: |

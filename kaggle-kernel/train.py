@@ -1,20 +1,19 @@
 """
-Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset via kagglehub,
-trains, and pushes the result straight to HF Hub itself — gated on eval accuracy.
+Runs on Kaggle's infrastructure (GPU-enabled). Pulls the labeled dataset from
+the attached Kaggle input path, trains, and pushes the result
+straight to HF Hub itself — gated on eval accuracy.
 """
 
 import subprocess
 import sys
 
 # Install required packages dynamically in the Kaggle environment
-subprocess.check_call([sys.executable, "-m", "pip", "install", "nlpaug", "transformers", "torch", "scikit-learn", "kagglehub"])
+subprocess.check_call([sys.executable, "-m", "pip", "install", "nlpaug", "transformers", "torch", "scikit-learn"])
 
 # Now your standard imports will run smoothly
 import nlpaug.augmenter.word as naw
 
 import os, numpy as np, pandas as pd, torch, joblib
-import kagglehub
-from kagglehub import KaggleDatasetAdapter
 from torch import nn
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
@@ -24,6 +23,7 @@ from transformers import DistilBertTokenizer, DistilBertForSequenceClassificatio
 from huggingface_hub import HfApi
 from kaggle_secrets import UserSecretsClient
 
+INPUT_CSV = "/kaggle/input/datasets/yogeshagowdaiiitdwd/drug-reviews-labeled/drug_reviews_labeled.csv"
 MODEL_OUTPUT_DIR = "/kaggle/working/model"
 HF_MODEL_REPO = "yogeshagowda/mtech-model"
 MIN_ACCURACY = 0.55
@@ -58,13 +58,8 @@ def augment_data(df, target_per_cat=500):
     return pd.concat(balanced).sample(frac=1).reset_index(drop=True)
 
 def main():
-    print("Loading dataset via kagglehub...")
-    df = kagglehub.load_dataset(
-        KaggleDatasetAdapter.PANDAS,
-        "yogeshagowdaiiitdwd/drug-reviews-labeled",
-        "",
-    )
-    df = df.dropna(subset=['review_text'])
+    print(f"Loading dataset from attached input path: {INPUT_CSV}...")
+    df = pd.read_csv(INPUT_CSV).dropna(subset=['review_text'])
     df = augment_data(df, target_per_cat=500)
 
     label_encoder = LabelEncoder()

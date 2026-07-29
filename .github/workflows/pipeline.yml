@@ -1,8 +1,8 @@
 name: Drug Review Pipeline
 
-on:
-  schedule:
-    - cron: '0 3 * * 0'    # weekly; adjust or remove once you're ready
+# on:
+#   schedule:
+#     - cron: '0 3 * * 0'    # weekly; adjust or remove once you're ready
   workflow_dispatch: {}
 
 jobs:
